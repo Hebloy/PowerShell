@@ -1,0 +1,25 @@
+$content = Get-Content F:\AVlist.log
+$Scope = { manage-bde -cn $Env:COMPUTERNAME -status }
+
+$null | Out-File F:\AVlist.log -Encoding utf8
+
+foreach ($PC in $content) {
+    Try	{
+      if (Test-Connection -ComputerName $PC -Quiet -Count 1) {
+        #Invoke command to remoted computer
+        $Obj = Invoke-Command -ComputerName $pc -ScriptBlock $Scope
+        $iOS = ([array]::IndexOf($obj,"[OS Volume]"))-1
+        $PC += [string[]]$obj[$iOS..($iOS+8)] | Select-String -Pattern "status"
+        [string]$PC | Out-File F:\AVencrypResult.log -Encoding utf8 -Append
+      }
+      else {
+        #$PC += " is not reachable"
+        [string]$PC | Out-File F:\AVlist.log -Encoding utf8 -Append
+      }        
+    }
+    Catch {
+      #Write-Error $_
+    }
+}
+
+$content.Count
