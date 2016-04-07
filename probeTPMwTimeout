@@ -12,7 +12,6 @@ foreach ($PC in $content) {
             $job1 = gwmi -cn $PC -ns "root\cimv2\security\microsofttpm" -Class "win32_tpm" -Authentication PacketPrivacy -AsJob
             $job2 = gwmi -cn $PC -Class "win32_computersystem" -AsJob
             get-job | Wait-Job -Timeout 30
-            #Wait-Job $job2 -Timeout 30
             get-job | Stop-Job
             
             $TPM = Receive-Job $job1
