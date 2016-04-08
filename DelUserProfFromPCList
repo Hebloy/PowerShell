@@ -1,0 +1,70 @@
+
+$pSid = "" #Put SID here
+$UserName = "" #Put Username here to match
+
+$PCList="PClist.log"
+#$PClist="PClist.log"
+
+$host.ui.RawUI.WindowTitle = $PCList
+
+$content = Get-Content $PCList
+#$null | Out-File $PCList -Encoding utf8
+
+foreach ($PC in $content) {
+    Try	{
+        if (Test-Connection -ComputerName $PC -Quiet -Count 1){
+            $profile=$null
+            $ErrorActionPreference = "SilentlyContinue"
+            
+            $profile = gwmi win32_userprofile -cn $PC | ?{$_.SID -like $pSid} 
+            
+            if($profile) {
+	            $user = $null
+	            $objUser = $null
+                #Create output objects
+		        $Output = New-Object PSObject
+	            # create a new secuity identifier object
+	            $ObjSID = New-Object System.Security.Principal.SecurityIdentifier($pSid)
+	            # Try to link the user SID to an actual user object (can fail for local accounts on remote machines, 
+	            #  or the user no long exists but the profile still remains)
+	            Try { 
+		            $objUser = $objSID.Translate([System.Security.Principal.NTAccount]) 
+	            }
+	            catch { 
+		            $user = "ERROR: Not Readable"
+	            }
+	            
+	            if ($objUser.Value) { $user = $objUser.Value }
+				
+                if([string]$user -eq $UserName){
+		            $Output | Add-Member NoteProperty Computer $PC
+		            $Output | Add-Member NoteProperty Username $user
+		            $Output | Add-Member NoteProperty Path $profile.LocalPath
+                    $Output | Add-Member NoteProperty Loaded $profile.Loaded
+		            $Output | Add-Member NoteProperty LastUseTime $profile.LastUseTime
+        
+                    Write-Output $Output
+                    
+                    if ($profile.Loaded){
+                        Write-Host "[ERROR] " -ForegroundColor Red -NoNewline
+                        Write-Host $user " is loaded, can't delete loaded user profiles."
+                    }
+                    else{
+                        Write-Host "Attempting to delete profile for: " $user
+                        # The delete process can take some time per profile, timeout is also very high, be patient. 
+                        $profile.Delete()
+                        Write-Host "[OK] " -ForegroundColor Green -NoNewline
+                        Write-Host "Deleted Profile for: " $user                       
+                    }
+                }
+            }
+        }
+        else {
+            #$PC is not reachable
+            [string]$PC | Out-File "PCnr.log" -Encoding utf8 -Append
+        }        
+	}
+	Catch {
+        #Write-Error $_
+	}
+}
