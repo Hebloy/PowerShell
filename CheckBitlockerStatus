@@ -1,3 +1,5 @@
+## On probe it will create a copy of the executing account on the remote system
+
 $content = Get-Content F:\AVlist.log
 $Scope = { manage-bde -cn $Env:COMPUTERNAME -status }
 
