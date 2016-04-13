@@ -1,0 +1,60 @@
+####################################################################################
+# Probes live machines for number of users having account on them
+####################################################################################
+
+# Input file with one hostname on each line
+$PCList="PClist.log"
+# Output file with hostname and one domain\user info on each line
+$ResultFile="profCount.log"
+
+# Set title of Window
+$host.ui.RawUI.WindowTitle = "Profile Count"
+
+$content = Get-Content $PCList
+
+foreach ($PC in $content) {
+    Try	{
+        if (Test-Connection -ComputerName $PC -Quiet -Count 1){
+            $ErrorActionPreference = "SilentlyContinue"
+            $profiles=$null
+            $job1 = gwmi win32_userprofile -cn $PC -AsJob #-Filter ?{$_.SID -like "s-1-5-21*"}
+            get-job | Wait-Job -Timeout 10
+            get-job | Stop-Job 
+            $profiles = Receive-Job $job1 | ?{$_.SID -like "s-1-5-21*"}
+            Remove-Job *
+
+            if($profiles.count -gt 0 -or ($profiles -and ($profiles.GetType()).Name -eq "ManagementObject")) {
+	            # Loop through the list of profiles
+	            foreach ($profile in $profiles) {
+                    $user = $null
+                    $objUser = $null
+                    # create a new secuity identifier object
+                    $ObjSID = New-Object System.Security.Principal.SecurityIdentifier($profile.Sid)
+                    # Try to link the user SID to an actual user object (can fail for local accounts on remote machines, 
+                    #  or the user no long exists but the profile still remains)
+                    Try { 
+                        $objUser = $objSID.Translate([System.Security.Principal.NTAccount]) 
+                    }
+                    catch { 
+                        $user = "ERROR: Not Readable"
+                    }
+
+                    if ($objUser.Value) { 
+                        [string]$PC + ", " + [String]$objUser.Value | Out-File $ResultFile -Encoding utf8 -Append
+                    }
+
+                }
+            }
+         }
+         else{
+            #$PC is not reachable
+            [string]$PC | Out-File "PCnr.log" -Encoding utf8 -Append
+         }
+	}
+	Catch {
+        Write-Error $_
+	}
+}
+
+
+  
