@@ -2,8 +2,6 @@ $PCList="PClist.log"
 $PCEncrypStatus="PCencrypResult.log"
 
 $content = Get-Content $PCList
-$Scope = { manage-bde -cn $Env:COMPUTERNAME -status }
-
 $null | Out-File $PCList -Encoding utf8
 
 foreach ($PC in $content) {
