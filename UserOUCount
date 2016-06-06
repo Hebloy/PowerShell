@@ -1,0 +1,25 @@
+Import-Module activedirectory
+
+$ou="OU=Users,DC=Contoso,DC=net"
+
+$d=$(Get-Date).AddDays(-90)
+$a=get-adorganizationalunit -filter 'name -like "*"' -searchbase $ou -searchscope onelevel
+
+foreach($item in $a)
+{
+    $i=0
+    $ucount=Get-ADuser -Filter 'samaccountname -like "*"' -properties passwordlastset,createTimeStamp -SearchBase $item.DistinguishedName
+    $ucount.count
+    
+    foreach($utem in $ucount)
+    {
+        if ($utem.enabled)
+        {
+            if (($($utem.createTimeStamp).compareto($d) -gt 0) -or ($utem.passwordlastset -ge $d))
+            {
+                $i++
+            }
+        }
+    }
+    Write-Output "$i,$($item.name)" | Out-File -FilePath "file.csv" -Append 
+}
