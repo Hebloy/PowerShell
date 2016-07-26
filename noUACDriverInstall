@@ -1,0 +1,10 @@
+$regEnum="HKLM:SYSTEM\CurrentControlSet\Enum\HDAUDIO"
+
+$regitems = GCI $regEnum -recurse -ErrorAction SilentlyContinue | ForEach-Object {Get-ItemProperty -path $_.PSPath -Name ConfigFlags -ErrorAction SilentlyContinue} | Where {$_.configFlags -ne 0x0 }
+If ($regitems)
+{
+	ForEach ($regitem in $regitems)
+	{
+		Set-ItemProperty -Path ($regitem).PSPath -Name ConfigFlags -Value 0 -Type DWORD
+	}
+}
