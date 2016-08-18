@@ -1,0 +1,18 @@
+# global variables
+$MAC="AA:BB:CC:DD:EE:FF"
+
+# functions
+Function WOL ($sMAC) {
+    $aMAC= $sMAC -split "[:-]" | ForEach-Object {[byte]"0x$_"}
+    #create MP
+    [byte[]]$MP = (,0xFF * 6) + ($aMAC * 16)
+
+    #send MP
+    $UdpClient = New-Object System.Net.Sockets.UdpClient
+    $UdpClient.Connect(([System.Net.IPAddress]::Broadcast),7)
+    $UdpClient.Send($MP,$MP.Length)
+    $UdpClient.Close()
+}
+
+# main
+WOL ($MAC)
