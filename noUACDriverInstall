@@ -1,5 +1,5 @@
 $regEnum="HKLM:SYSTEM\CurrentControlSet\Enum\HDAUDIO"
-$mfgName = "Conexant"
+$mfgName = "conexant"
 $configValue = 0x0
 
 $regitems = GCI $regEnum -recurse -ErrorAction SilentlyContinue | ForEach-Object {Get-ItemProperty -path $_.PSPath -Name ConfigFlags, Mfg -ErrorAction SilentlyContinue} | Where {($_.configFlags -ne $configValue) -and ($_.Mfg -match $mfgName) }
