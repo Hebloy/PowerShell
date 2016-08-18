@@ -1,0 +1,64 @@
+##############################################################################
+# Code: Fetch vital system details                                           #
+# Author: PIJD@STATOIL.COM                                                   #
+##############################################################################
+
+#Declare and initialze variables
+$body = $null
+$computer = $env:COMPUTERNAME
+
+#Collect data
+$bios = gwmi -Class Win32_bios -ComputerName $computer
+$System = gwmi -Class win32_computersystem -ComputerName $computer
+$processor = gwmi -Class win32_processor -ComputerName $computer
+$video = gwmi -Class win32_videocontroller -ComputerName $computer
+$disk = [wmi]"\\$computer\root\cimv2:win32_logicaldisk.deviceID='c:'"
+$TPM = gwmi -Class Win32_tpm -Namespace root\CIMV2\Security\MicrosoftTPM -ComputerName $computer
+$HDDT = Get-Disk
+$NetAdap = gwmi -Class Win32_NetworkAdapter -ComputerName $computer -Filter "PhysicalAdapter=True"
+
+#Create HTML body
+$body += "Report generated: " + (Get-Date -Format s) + "<br>"
+$body += "Make: " + $system.Manufacturer + "<br>"
+$body += "Model: " + $system.Model + "<br>"
+$body += "Serial #: " + $bios.SerialNumber + "<BR>"
+$body += "BIOS ver: " + $bios.SMBIOSBIOSVersion + " Dated: " + (Get-Date $bios.ConvertToDateTime($bios.ReleaseDate) -Format d) + "<br>"
+$body += "TPM Version: " + $TPM.PhysicalPresenceVersionInfo + "<br><br>"
+
+
+if ($processor.count -gt 1)
+{ $body += "CPU: " + $processor.Count + "x " + $processor[0].Name +", "+ $processor[0].NumberOfCores +"cores <br>" }
+else 
+{ $body += "CPU: " + $processor.Name +", "+ $processor.NumberOfCores +"cores <br>" }
+
+$body += "GPU:  " + $video.Name + ", RAM: " + [math]::round($video.AdapterRAM/1gb)
+$body += "GB, Version: "+ $video.DriverVersion + ", Date: "+ (Get-Date $video.ConvertToDateTime($video.DriverDate) -Format d) + "<br>"
+$body += "RAM : " + [math]::Round($system.TotalPhysicalMemory/1GB) + "GB<br>"
+
+<#foreach ($i IN $HDD)
+    {$body +=  "Disk " +$i.index + ": " + $i.Model +", fw: " + $i.firmwarerevision + ", Capacity; " + [math]::Round($i.size/1000000000)+ "GB<BR>"}
+
+$body += "HDD Serial/s: "+ $HDDsrl.SerialNumber +"<br>"
+$body += "C: Free disk space: " + [math]::round($disk.FreeSpace/1gb,2) + "GB<br>"#>
+
+foreach ($i IN $HDDT)
+    {$body +=  "Disk " +$i.DiskNumber + ": " + $i.Model +", fw: " + $i.FirmwareVersion + ", Capacity: " + [math]::Round($i.size/1000000000)+ "GB"
+     $body += " Serial: "+ $HDDT.SerialNumber +"<br>"}
+
+$body += "C: Free disk space: " + [math]::round($disk.FreeSpace/1gb,2) + "GB<br>"
+
+#if ($NetAdap.Count -gt 1)
+foreach ($adap IN $NetAdap)
+    {$body += "LAN "+ $adap.DeviceID +": " + $adap.Name + ", MAC: " + $adap.MACAddress +"<br>"}
+
+#Create HTML Header
+$head =  "<style>"
+$head += "BODY{background-color:#3D0014;color:white;Font-family:Calibri}"
+$head += "</style>"
+$head += "<h1>System report for $computer</h1><br>"
+
+#Create HTML File
+ConvertTo-Html  -body $body -Head $head|
+Out-File -FilePath "$computer.html"
+
+gwmi win32_pnpsigneddriver | select DeviceID, DeviceName, Description, Manufacturer, InfName, DriverVersion, IsSigned, Signer, DriverDate | Export-Csv $computer+drvQry.csv
