@@ -1,0 +1,57 @@
+##############################################################################################################
+# Program: Utility to analyze and defrag with user input (SSD or HDD)                                        #
+# Author: Pijush Das @ Statoil ASA                                                                           #
+# Year: 2015                                                                                                 #
+##############################################################################################################
+
+# Get Drive List
+##############################################################################################################
+$Volumes = Get-WmiObject win32_volume -Filter "(DriveType = 2 OR DriveType = 3) AND DriveLetter <> NULL AND Capacity > 1000"
+
+# Functions
+##############################################################################################################
+function RunDefrag
+{   $Ans=Read-Host "Want to defrag this volume now: (Y/N) "
+    if ($Ans -eq 'Y')
+    {   Write-host $Volume.DriveLetter "Defragmenting.."
+        $result=($Volume.defrag(0)).returnValue        
+        switch ($result)
+        { 0  {Write-Host 'Defrag Successfully Completed'}
+          1  {Write-Host 'Access Denied'}
+          2  {Write-Host 'Not Supported'}
+          3  {Write-Host 'Volume Dirty Bit Set'}
+          4  {Write-Host 'Not Enough Free Space'}
+          5  {Write-Host 'Corrupt MFT Detected'}
+          6  {Write-Host 'Call Cancelled'}
+          7  {Write-Host 'Cancellation Request Requested Too Late'}
+          8  {Write-Host 'Defrag In Progress'}
+          9  {Write-Host 'Defrag Engine Unavailable'}
+          10 {Write-Host 'Defrag Engine Error'}
+          11 {Write-Host 'Unknown Error'}
+        }
+    }
+}
+
+
+# Main
+##############################################################################################################
+Clear-Host
+
+foreach ($Volume in $Volumes)
+{   $DiskSize=[math]::truncate($Volume.capacity/1GB)
+    $FreeSpace=[math]::truncate($Volume.FreeSpace/1GB)
+    Write-Host "==========================================================="
+    Write-Host $Volume.DriveLetter $FreeSpace "GB free out of" $DiskSize "GB" 
+    Write-Host "Analyzing fragmentation..."
+        
+    $analysis = $Volume.DefragAnalysis()
+    if ($analysis.defragrecommended -eq $true)
+    {   Write-Host "If this is a non-SSD drive it should be defragemented!"
+        RunDefrag
+    }
+    else
+    {   Write-Host "Defragmentation not required"
+        Write-Host " "
+        #RunDefrag
+    }
+}
