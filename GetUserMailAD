@@ -1,0 +1,3 @@
+$OU1 = "OU=Users,DC=ABC,DC=net"
+
+Get-ADUser -filter * -Properties mail -SearchBase $OU1 | select SAMAccountName, name, mail | Export-CSV -Path userMail.log -Encoding Unicode
