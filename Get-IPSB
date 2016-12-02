@@ -1,0 +1,26 @@
+$PCList="PCs.log"
+$PCIP="PCIP.log"
+
+$content = Get-Content $PCList
+$T = $content.Count
+$i = 0
+$null | Out-File $PCList -Encoding utf8
+
+foreach ($PC in $content) {
+    Try	{
+        if (Test-Connection -ComputerName $PC -Quiet -Count 1){ 
+            $t= gwmi -Class Win32_NetworkAdapterConfiguration -Filter IPEnabled=TRUE -cn $PC | Select-Object -Property IPAddress, IPSubnet
+            $PC + ";" + ($t.IPAddress -join ",") + ";" + ($t.IPSubnet -join ",") | Out-File $PCIP -Encoding utf8 -Append
+        }
+        else {
+            #$PC += " is not reachable"
+            [string]$PC | Out-File $PCList -Encoding utf8 -Append
+        }        
+	}
+	Catch {
+        #Write-Error $_
+        [string]$PC | Out-File $PCList -Encoding utf8 -Append
+	}
+    $i += 1
+    Write-Host ("{0:N2}" -f ($i/$T*100)) "%" $PC $(Get-Date -format u)
+}
