@@ -1,0 +1,29 @@
+$ErrorActionPreference = "SilentlyContinue"
+
+$PCList = Get-Content "PC.txt"
+$Result = "DetectionDetails.txt"
+$O365RegPath = "HKLM\SOFTWARE\Microsoft\Windows\CurrentVersion\Uninstall\O365ProPlusRetail - en-us"
+
+foreach ($PC in $PCList) {
+    try {
+        $PC = "PC-$PC"
+        if (Test-Connection -ComputerName $PC -Quiet -Count 1) {
+            $OSIdt = (gwmi -Class Win32_operatingsystem -ComputerName $PC).installdate
+            
+            if (((psexec /s \\$pc reg query $O365RegPath)[8]) -like "*365*") {
+                $isO365 = $true
+            } else {
+                $isO365 = $false
+            }   
+
+            [string]"$PC,$isO365,$OSIdt" | Out-File $Result -Encoding utf8 -Append
+        } else {
+            [string]"$PC,NotReachable" | Out-File $Result -Encoding utf8 -Append
+        }
+    }
+    catch{
+        #Write-Host "$PC caught it"
+        [string]"$PC,False,$OSIdt" | Out-File $Result -Encoding utf8 -Append
+
+    }    
+}
