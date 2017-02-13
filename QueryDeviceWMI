@@ -1,0 +1,4 @@
+$pc = "PCHostName"
+if (Test-Connection $pc -Count 1) {
+    (gwmi -ComputerName $pc -Query "select caption from Win32_pnpentity where caption like '%cam%'").caption
+}
