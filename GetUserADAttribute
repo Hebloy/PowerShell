@@ -3,3 +3,9 @@ $OU1 = "OU=Users,DC=ABC,DC=net"
 Get-ADUser -filter * -Properties mail -SearchBase $OU1 | select SAMAccountName, name, mail | Export-CSV -Path userMail.log -Encoding Unicode
 
 Get-ADUser -filter {enabled -eq $true} -Properties extensionAttribute1, mail, department, co -SearchBase $uOU | select SAMAccountName, name, mail, extensionAttribute1, department, co, DistinguishedName | Export-CSV -Path userDet.log -Encoding Unicode
+
+
+
+
+# Second version:
+Get-ADUser -filter {enabled -eq $true} -Properties telephoneNumber, mail, department, co, lastLogon, lastLogonTimestamp -SearchBase $OU1 | select SAMAccountName, name, mail, telephoneNumber, department, co, DistinguishedName, @{N='LastLogon'; E={[DateTime]::FromFileTime($_.lastLogon).ToString('d/M/y H:m:s')}}, @{N='lastLogonTimestamp'; E={[DateTime]::FromFileTime($_.lastLogonTimestamp).ToString('d/M/y H:m:s')}} | Export-CSV -Path userDet.log -Encoding Unicode
