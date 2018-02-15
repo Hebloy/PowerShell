@@ -1,0 +1,9 @@
+#Copy files to remote PC
+Invoke-Command -ComputerName <Hostname> -ScriptBlock {
+  $args[0] | Set-Content  C:\myFolder\somefile.txt
+} -ArgumentList (Get-Content -path D:\myFolder\somefile.txt -Raw)
+
+#fetch files from remote PC
+Invoke-Command -ComputerName <Hostname> -ScriptBlock { 
+    Get-Content C:\myFolder\somefile.txt
+} >> res.txt
