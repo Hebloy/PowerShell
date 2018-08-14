@@ -1,0 +1,1 @@
+gwmi -Query "select * from Win32_PnPEntity where Name like '%keyboard%'" | Sort-Object configmanagererrorcode | format-table -Property PNPDeviceID, Status, Manufacturer, Service, caption -AutoSize -GroupBy configmanagererrorcode
