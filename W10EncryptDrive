@@ -1,0 +1,33 @@
+#Set Variables
+$vol = Get-BitLockerVolume
+$encryptionStrength = "XtsAes256"
+
+#Define functions here
+Function Ensure-Encryption {
+    param ($d)
+
+    if (($d.VolumeStatus -eq "FullyDecrypted") -or ($d.volumeStatus -eq "EncryptionSuspended")) {
+        try {
+            #Enable TPMkeyprotector
+            Enable-BitLocker -MountPoint $d.MountPoint -RecoveryPasswordProtector -EncryptionMethod $encryptionStrength -SkipHardwareTest -UsedSpaceOnly -WarningAction SilentlyContinue | Out-Null
+        } catch { $Error[0] }
+
+        if ($d.VolumeType -eq "Data") {
+            try {
+                Enable-BitLockerAutoUnlock -MountPoint $d.MountPoint
+            } catch { $Error[0] }
+        }
+    } #other status "FullyEncrypted", "DecryptionInProgress"
+    Get-BitLockerVolume
+}
+
+
+#Start execution here
+if ($vol -is [Array]) {
+    #PCs with multiple drives
+    foreach ($drv in $vol) {
+        Ensure-Encryption $drv
+    }
+} else {
+    #PCs with single drive
+    Ensure-Encryption $vol
